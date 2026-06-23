@@ -1,3 +1,5 @@
 .DS_Store
 *.swiftmodule
 ClipVaultBin
+ClipVault.app/Contents/MacOS/ClipVault
+ClipVault.zip

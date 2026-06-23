@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import Combine
 
 @MainActor
@@ -6,14 +7,30 @@ class AppState: ObservableObject {
     @Published var clips: [Clip] = []
     @Published var searchText: String = ""
     @Published var snippets: [Snippet] = []
+    @Published var theme: String = "system"
 
     let db: DatabaseManager
     let monitor: ClipboardMonitor
     weak var popoverRef: NSPopover?
 
+    /// Resolves the saved theme string into a SwiftUI override (nil = follow system).
+    var colorSchemeOverride: ColorScheme? {
+        switch theme {
+        case "light": return .light
+        case "dark":  return .dark
+        default:      return nil
+        }
+    }
+
+    func setTheme(_ newTheme: String) {
+        theme = newTheme
+        db.setSetting("theme", value: newTheme)
+    }
+
     init(db: DatabaseManager, monitor: ClipboardMonitor) {
         self.db = db
         self.monitor = monitor
+        theme = db.getSetting("theme") ?? "system"
         loadClips()
         loadSnippets()
         monitor.onNewClip = { [weak self] text, type in

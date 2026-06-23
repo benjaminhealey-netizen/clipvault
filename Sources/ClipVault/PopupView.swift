@@ -200,6 +200,7 @@ struct PopupView: View {
         }
         .frame(width: 380)
         .skeuoWindow()
+        .preferredColorScheme(state.colorSchemeOverride)
         .onAppear {
             localSearch = ""
             state.search("")
@@ -227,7 +228,7 @@ struct PopupView: View {
                     .frame(width: 22, height: 22)
                 Image(systemName: "doc.on.clipboard.fill")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(p.isDark ? Color(hex: 0x3A2A06) : .white)
+                    .foregroundColor(.white)
             }
 
             Text("ClipVault")

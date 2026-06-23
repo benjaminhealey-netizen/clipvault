@@ -26,7 +26,7 @@ struct SettingsView: View {
                         .frame(width: 24, height: 24)
                     Image(systemName: "doc.on.clipboard.fill")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(p.isDark ? Color(hex: 0x3A2A06) : .white)
+                        .foregroundColor(.white)
                 }
                 Text("ClipVault Settings")
                     .font(.system(size: 16, weight: .bold))
@@ -59,13 +59,19 @@ struct SettingsView: View {
                             .pickerStyle(.menu).labelsHidden().frame(width: 130)
                         }
                         Divider().opacity(0.4)
-                        settingRow("Theme") {
+                        settingRow("Appearance") {
                             Picker("", selection: $theme) {
                                 Text("System").tag("system")
                                 Text("Light").tag("light")
                                 Text("Dark").tag("dark")
                             }
-                            .pickerStyle(.menu).labelsHidden().frame(width: 130)
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                            .frame(width: 200)
+                            .onChange(of: theme) { _, newValue in
+                                // Apply immediately so the popup updates too
+                                state.setTheme(newValue)
+                            }
                         }
                         Divider().opacity(0.4)
                         settingRow("Launch at login") {

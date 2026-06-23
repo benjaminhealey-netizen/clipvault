@@ -16,40 +16,40 @@ extension Color {
 
 // MARK: - Palette
 //
-// A warm, tactile palette: brushed graphite in dark mode, aged linen in light
-// mode, with brass accents. Tuned so highlights and shadows read as real depth.
+// Clean, neutral, tactile: cool greys with a single restrained blue accent.
+// Depth comes from highlights, bevels and shadows — not from colour.
 
 struct SkeuoPalette {
     let isDark: Bool
     init(_ scheme: ColorScheme) { isDark = scheme == .dark }
 
     // Window background
-    var bgTop: Color    { isDark ? Color(hex: 0x3C3F47) : Color(hex: 0xF7F3EB) }
-    var bgBottom: Color { isDark ? Color(hex: 0x222429) : Color(hex: 0xDDD6C8) }
+    var bgTop: Color    { isDark ? Color(hex: 0x2C2E33) : Color(hex: 0xF6F7F9) }
+    var bgBottom: Color { isDark ? Color(hex: 0x1B1C1F) : Color(hex: 0xE3E6EA) }
 
     // Raised surfaces (cards, buttons) — convex, lit from above
-    var raisedTop: Color    { isDark ? Color(hex: 0x50545E) : Color(hex: 0xFFFFFF) }
-    var raisedBottom: Color { isDark ? Color(hex: 0x383C44) : Color(hex: 0xEBE5D9) }
+    var raisedTop: Color    { isDark ? Color(hex: 0x3B3E44) : Color(hex: 0xFFFFFF) }
+    var raisedBottom: Color { isDark ? Color(hex: 0x2A2C31) : Color(hex: 0xEEF0F3) }
 
     // Recessed surfaces (search well, icon tiles) — engraved, dark at the top
-    var wellTop: Color    { isDark ? Color(hex: 0x1A1C20) : Color(hex: 0xD3CCBE) }
-    var wellBottom: Color { isDark ? Color(hex: 0x2B2E34) : Color(hex: 0xEDE8DE) }
+    var wellTop: Color    { isDark ? Color(hex: 0x161719) : Color(hex: 0xDCDFE4) }
+    var wellBottom: Color { isDark ? Color(hex: 0x232529) : Color(hex: 0xEEF0F2) }
 
     // Edges & light
-    var stroke: Color       { isDark ? Color(hex: 0x121317, opacity: 0.85) : Color(hex: 0xB4AB98, opacity: 0.7) }
-    var topHighlight: Color { Color.white.opacity(isDark ? 0.12 : 0.9) }
-    var innerShadow: Color  { Color.black.opacity(isDark ? 0.55 : 0.24) }
-    var dropShadow: Color   { Color.black.opacity(isDark ? 0.5 : 0.18) }
+    var stroke: Color       { isDark ? Color(hex: 0x0C0D0F, opacity: 0.8) : Color(hex: 0xC1C6CE, opacity: 0.75) }
+    var topHighlight: Color { Color.white.opacity(isDark ? 0.10 : 0.95) }
+    var innerShadow: Color  { Color.black.opacity(isDark ? 0.55 : 0.18) }
+    var dropShadow: Color   { Color.black.opacity(isDark ? 0.5 : 0.14) }
 
-    // Accent (brass)
-    var accent: Color       { isDark ? Color(hex: 0xE7B45A) : Color(hex: 0xB07B24) }
-    var accentTop: Color    { isDark ? Color(hex: 0xF2C46E) : Color(hex: 0xD7A24A) }
-    var accentBottom: Color { isDark ? Color(hex: 0xC9912F) : Color(hex: 0xA1701B) }
+    // Accent (blue)
+    var accent: Color       { isDark ? Color(hex: 0x3A9CFF) : Color(hex: 0x007AFF) }
+    var accentTop: Color    { isDark ? Color(hex: 0x4AA8FF) : Color(hex: 0x2E90FF) }
+    var accentBottom: Color { isDark ? Color(hex: 0x0A78F0) : Color(hex: 0x0A6EE0) }
 
     // Text
-    var textPrimary: Color   { isDark ? Color(hex: 0xECEAE5) : Color(hex: 0x2B2823) }
-    var textSecondary: Color { isDark ? Color(hex: 0xA7ABB3) : Color(hex: 0x6B665C) }
-    var textTertiary: Color  { isDark ? Color(hex: 0x70747C) : Color(hex: 0x9A9485) }
+    var textPrimary: Color   { isDark ? Color(hex: 0xECECEE) : Color(hex: 0x1C1E22) }
+    var textSecondary: Color { isDark ? Color(hex: 0xA0A4AC) : Color(hex: 0x5C6068) }
+    var textTertiary: Color  { isDark ? Color(hex: 0x6A6E76) : Color(hex: 0x9AA0A8) }
 }
 
 // MARK: - Window background
@@ -170,7 +170,7 @@ struct SkeuoProminentButtonStyle: ButtonStyle {
         let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
         configuration.label
             .font(.system(size: 13, weight: .semibold))
-            .foregroundColor(p.isDark ? Color(hex: 0x3A2A06) : .white)
+            .foregroundColor(.white)
             .padding(.horizontal, 16)
             .padding(.vertical, 7)
             .background(

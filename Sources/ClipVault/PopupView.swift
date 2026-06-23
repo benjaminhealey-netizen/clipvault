@@ -199,6 +199,7 @@ struct PopupView: View {
             footerView
         }
         .frame(width: 380)
+        .background(snippetHotkeys)   // ⌘1–9 active only while the popup is key
         .skeuoWindow()
         .preferredColorScheme(state.colorSchemeOverride)
         .onAppear {
@@ -211,6 +212,21 @@ struct PopupView: View {
         .onChange(of: localSearch) { _, newValue in
             state.search(newValue)
         }
+    }
+
+    // Invisible buttons that bind ⌘1–9 to snippets. Because they only live in
+    // the popup's view tree, the shortcuts fire solely while the popup is the
+    // key window — leaving ⌘1–9 free for other apps the rest of the time.
+    private var snippetHotkeys: some View {
+        ZStack {
+            ForEach(1...9, id: \.self) { i in
+                Button("") { state.fireSnippet(slot: i) }
+                    .keyboardShortcut(KeyEquivalent(Character("\(i)")), modifiers: .command)
+            }
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .allowsHitTesting(false)
     }
 
     private var headerView: some View {

@@ -42,11 +42,15 @@ class AppState: ObservableObject {
         }
         monitor.onNewImage = { [weak self] data in
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                _ = self.db.addImageClip(data)
-                self.loadClips()
+                self?.ingestImage(data)
             }
         }
+    }
+
+    /// Save an image (clipboard or screenshot) into history and refresh.
+    func ingestImage(_ data: Data) {
+        _ = db.addImageClip(data)
+        loadClips()
     }
 
     func loadClips() {
@@ -79,7 +83,11 @@ class AppState: ObservableObject {
         monitor.ignoreNext()
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(s.content, forType: .string)
-        popoverRef?.performClose(nil)
+        // Surface the snippet as a clip so it appears at the top of the list —
+        // the user can see exactly what was just put on the clipboard.
+        _ = db.addClip(content: s.content, type: ClipType.detect(s.content))
+        loadClips()
+        // Keep the popup open so the new top item is visible.
     }
 
     func deleteClip(_ clip: Clip) {

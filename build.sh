@@ -18,6 +18,7 @@ swiftc \
   "$SRCDIR/Skeuomorphism.swift" \
   "$SRCDIR/DatabaseManager.swift" \
   "$SRCDIR/ClipboardMonitor.swift" \
+  "$SRCDIR/ScreenshotWatcher.swift" \
   "$SRCDIR/AppState.swift" \
   "$SRCDIR/PopupView.swift" \
   "$SRCDIR/SettingsView.swift" \

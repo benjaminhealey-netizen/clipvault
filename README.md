@@ -19,10 +19,11 @@ No Electron. No dependencies. Just a tiny native Swift app.
 ## ✨ What it does
 
 - 🗂️ **Clipboard history** — automatically saves everything you copy
-- 🖼️ **Images too** — screenshots and copied pictures are kept as thumbnails
+- 🖼️ **Images too** — copied pictures are kept as thumbnails
+- 📸 **Screenshots** — screenshots you take appear in ClipVault automatically
 - 🔍 **Instant search** — type to filter your whole history
 - 📌 **Pin favourites** — keep important clips from being cleared
-- ⌨️ **Snippets** — store 9 reusable texts, paste with `⌘1`–`⌘9`
+- ⌨️ **Snippets** — store 9 reusable texts, paste with `⌘1`–`⌘9` while the popup is open
 - 🎨 **Light / Dark / System** — clean, tactile design either way
 - 🚀 **Launch at login** — always ready, stays out of your way
 - 🔒 **100% local** — your clips never leave your Mac
@@ -52,14 +53,23 @@ That's it! Look for the clipboard icon in your menu bar.
 | Action | Shortcut |
 |---|---|
 | Open / close ClipVault | **`⌃⇧V`** (Control + Shift + V) |
-| Paste a snippet | **`⌘1`** – **`⌘9`** |
+| Load a snippet (while popup is open) | **`⌘1`** – **`⌘9`** |
 | Copy a clip | Click it |
 | Pin / delete a clip | Hover over it |
 | Search | Just start typing |
 | Settings | Gear icon in the popup |
 
-> `⌃⇧V` is used on purpose so the system's **Paste and Match Style** (`⌘⇧V`)
-> still works everywhere.
+> **`⌃⇧V`** is used on purpose so the system's **Paste and Match Style**
+> (`⌘⇧V`) still works everywhere.
+>
+> **`⌘1`–`⌘9`** only fire while the ClipVault popup is open, so they don't
+> interfere with `⌘1`–`⌘9` tab-switching in your browser the rest of the time.
+> A loaded snippet is copied to your clipboard and jumps to the top of the list
+> so you can see exactly what's ready to paste.
+
+> 📸 **Screenshots:** the first time you take one, macOS will ask ClipVault for
+> permission to read your screenshot folder (Documents/Desktop) — allow it once
+> and every screenshot after will appear in your history automatically.
 
 ---
 

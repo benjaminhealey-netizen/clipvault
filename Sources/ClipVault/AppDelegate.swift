@@ -4,12 +4,10 @@ import Carbon
 
 // MARK: - Global hotkey state (file-level, accessible from C callback)
 
-// Hotkey IDs: 1 = Cmd+Shift+V toggle, 101–109 = Cmd+1–9 snippets
-private var globalHotkeyRefs: [EventHotKeyRef?] = Array(repeating: nil, count: 11)
+// Hotkey ID 1 = Ctrl+Shift+V toggle. (Snippet ⌘1–9 are handled locally inside
+// the popup so they don't shadow ⌘1–9 elsewhere, e.g. browser tab switching.)
+private var globalHotkeyRef: EventHotKeyRef?
 nonisolated(unsafe) private var appDelegateRef: AppDelegate?
-
-// US-keyboard key codes for digits 1–9
-private let digitKeyCodes: [UInt32] = [18, 19, 20, 21, 23, 22, 26, 28, 25]
 
 // Carbon event handler must be a @convention(c) function
 private func hotkeyEventHandler(
@@ -27,13 +25,8 @@ private func hotkeyEventHandler(
         nil,
         &hkID
     )
-    Task { @MainActor in
-        if hkID.id == 1 {
-            appDelegateRef?.togglePopover()
-        } else if hkID.id >= 101 && hkID.id <= 109 {
-            let slot = Int(hkID.id) - 100  // 101 → slot 1 … 109 → slot 9
-            appDelegateRef?.appState?.fireSnippet(slot: slot)
-        }
+    if hkID.id == 1 {
+        Task { @MainActor in appDelegateRef?.togglePopover() }
     }
     return noErr
 }
@@ -47,6 +40,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var appState: AppState!
     var db: DatabaseManager!
     var monitor: ClipboardMonitor!
+    var screenshotWatcher: ScreenshotWatcher!
     var settingsWindow: NSWindow?
     private var eventHandlerRef: EventHandlerRef?
 
@@ -68,6 +62,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Start clipboard monitoring
         monitor.start()
+
+        // Start watching for screenshots saved to disk
+        screenshotWatcher = ScreenshotWatcher()
+        screenshotWatcher.onNewScreenshot = { [weak self] data in
+            self?.appState.ingestImage(data)
+        }
+        screenshotWatcher.start()
 
         // Register global hotkeys (Cmd+Shift+V + Cmd+1–9)
         registerHotkeys()
@@ -142,14 +143,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Ctrl+Shift+V → toggle popup (id = 1) — leaves Cmd+Shift+V free
         // for the system "paste and match style" shortcut.
-        var hkID = EventHotKeyID(signature: sig, id: 1)
-        RegisterEventHotKey(9, UInt32(controlKey | shiftKey), hkID, GetApplicationEventTarget(), 0, &globalHotkeyRefs[0])
-
-        // Cmd+1–9 → snippets (id = 101–109)
-        for (i, keyCode) in digitKeyCodes.enumerated() {
-            hkID = EventHotKeyID(signature: sig, id: UInt32(101 + i))
-            RegisterEventHotKey(keyCode, UInt32(cmdKey), hkID, GetApplicationEventTarget(), 0, &globalHotkeyRefs[i + 1])
-        }
+        let hkID = EventHotKeyID(signature: sig, id: 1)
+        RegisterEventHotKey(9, UInt32(controlKey | shiftKey), hkID, GetApplicationEventTarget(), 0, &globalHotkeyRef)
     }
 
     @objc func openSettings() {
@@ -185,7 +180,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         monitor.stop()
-        for ref in globalHotkeyRefs { if let r = ref { UnregisterEventHotKey(r) } }
+        screenshotWatcher?.stop()
+        if let ref = globalHotkeyRef { UnregisterEventHotKey(ref) }
         if let ref = eventHandlerRef { RemoveEventHandler(ref) }
     }
 }

@@ -77,6 +77,14 @@ struct SettingsView: View {
                         settingRow("Launch at login") {
                             Toggle("", isOn: $launchAtLogin).labelsHidden().toggleStyle(.switch)
                         }
+                        Divider().opacity(0.4)
+                        settingRow("Trash screenshots after capturing") {
+                            Toggle("", isOn: Binding(
+                                get: { state.trashScreenshots },
+                                set: { state.setTrashScreenshots($0) }
+                            ))
+                            .labelsHidden().toggleStyle(.switch)
+                        }
                     }
 
                     // MARK: Snippets

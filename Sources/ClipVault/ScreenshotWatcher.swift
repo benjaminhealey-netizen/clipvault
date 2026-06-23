@@ -5,7 +5,7 @@ import AppKit
 /// default, so polling the folder is the reliable way to catch them.
 @MainActor
 final class ScreenshotWatcher {
-    var onNewScreenshot: ((Data) -> Void)?
+    var onNewScreenshot: ((Data, URL) -> Void)?
 
     private var timer: Timer?
     private var directory: URL
@@ -73,7 +73,7 @@ final class ScreenshotWatcher {
                 }
                 return
             }
-            self.onNewScreenshot?(png)
+            self.onNewScreenshot?(png, url)
         }
     }
 }

@@ -65,8 +65,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Start watching for screenshots saved to disk
         screenshotWatcher = ScreenshotWatcher()
-        screenshotWatcher.onNewScreenshot = { [weak self] data in
-            self?.appState.ingestImage(data)
+        screenshotWatcher.onNewScreenshot = { [weak self] data, url in
+            self?.appState.ingestScreenshot(data, sourceURL: url)
         }
         screenshotWatcher.start()
 

@@ -8,6 +8,7 @@ class AppState: ObservableObject {
     @Published var searchText: String = ""
     @Published var snippets: [Snippet] = []
     @Published var theme: String = "system"
+    @Published var trashScreenshots: Bool = false
 
     let db: DatabaseManager
     let monitor: ClipboardMonitor
@@ -27,10 +28,16 @@ class AppState: ObservableObject {
         db.setSetting("theme", value: newTheme)
     }
 
+    func setTrashScreenshots(_ on: Bool) {
+        trashScreenshots = on
+        db.setSetting("trashScreenshots", value: on ? "true" : "false")
+    }
+
     init(db: DatabaseManager, monitor: ClipboardMonitor) {
         self.db = db
         self.monitor = monitor
         theme = db.getSetting("theme") ?? "system"
+        trashScreenshots = (db.getSetting("trashScreenshots") ?? "false") == "true"
         loadClips()
         loadSnippets()
         monitor.onNewClip = { [weak self] text, type in
@@ -51,6 +58,15 @@ class AppState: ObservableObject {
     func ingestImage(_ data: Data) {
         _ = db.addImageClip(data)
         loadClips()
+    }
+
+    /// Save a screenshot file into history, optionally moving the original to
+    /// the Trash (recoverable) once it's safely captured.
+    func ingestScreenshot(_ data: Data, sourceURL: URL) {
+        ingestImage(data)
+        if trashScreenshots {
+            try? FileManager.default.trashItem(at: sourceURL, resultingItemURL: nil)
+        }
     }
 
     func loadClips() {

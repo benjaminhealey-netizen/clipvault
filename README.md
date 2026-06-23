@@ -20,7 +20,7 @@ No Electron. No dependencies. Just a tiny native Swift app.
 
 - 🗂️ **Clipboard history** — automatically saves everything you copy
 - 🖼️ **Images too** — copied pictures are kept as thumbnails
-- 📸 **Screenshots** — screenshots you take appear in ClipVault automatically
+- 📸 **Screenshots** — screenshots you take appear in ClipVault automatically (optionally moved to the Trash afterwards to keep your folder tidy)
 - 🔍 **Instant search** — type to filter your whole history
 - 📌 **Pin favourites** — keep important clips from being cleared
 - ⌨️ **Snippets** — store 9 reusable texts, paste with `⌘1`–`⌘9` while the popup is open

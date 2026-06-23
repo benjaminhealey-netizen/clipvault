@@ -7,13 +7,59 @@ struct TypeBadge: View {
     let type: ClipType
 
     var body: some View {
-        Text(type.label)
-            .font(.system(size: 9, weight: .semibold))
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
-            .background(type.badgeColor.opacity(0.18))
-            .foregroundColor(type.badgeColor)
-            .clipShape(Capsule())
+        HStack(spacing: 3) {
+            Image(systemName: type.icon)
+                .font(.system(size: 8, weight: .bold))
+            Text(type.label)
+                .font(.system(size: 9, weight: .bold))
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2.5)
+        .background(
+            Capsule()
+                .fill(type.badgeColor.opacity(0.16))
+                .overlay(Capsule().strokeBorder(type.badgeColor.opacity(0.35), lineWidth: 0.5))
+        )
+        .foregroundColor(type.badgeColor)
+    }
+}
+
+// MARK: - Leading tile (image thumbnail or type icon)
+
+struct ClipTile: View {
+    let clip: Clip
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
+        Group {
+            if clip.type == .image, let data = clip.imageData, let img = NSImage(data: data) {
+                Image(nsImage: img)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                let p = SkeuoPalette(scheme)
+                Image(systemName: clip.type.icon)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(clip.type.badgeColor.opacity(0.9))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(
+                        LinearGradient(colors: [p.wellTop, p.wellBottom], startPoint: .top, endPoint: .bottom)
+                    )
+            }
+        }
+        .frame(width: 40, height: 40)
+        .clipShape(shape)
+        .overlay(
+            shape.strokeBorder(SkeuoPalette(scheme).stroke, lineWidth: 0.75)
+        )
+        .overlay(
+            // glassy top sheen on the photo frame
+            shape.strokeBorder(SkeuoPalette(scheme).topHighlight.opacity(0.5), lineWidth: 0.75)
+                .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .center))
+        )
+        .shadow(color: .black.opacity(scheme == .dark ? 0.4 : 0.18), radius: 1.5, y: 1)
     }
 }
 
@@ -22,23 +68,20 @@ struct TypeBadge: View {
 struct ClipRowView: View {
     let clip: Clip
     @ObservedObject var state: AppState
+    @Environment(\.colorScheme) private var scheme
     @State private var isHovered = false
     @State private var deleteHovered = false
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Pin indicator
-            if clip.isPinned {
-                Image(systemName: "pin.fill")
-                    .font(.system(size: 10))
-                    .foregroundColor(.yellow)
-            }
+        let p = SkeuoPalette(scheme)
+        HStack(spacing: 10) {
+            ClipTile(clip: clip)
 
             // Main content
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(clip.preview)
-                    .font(.system(size: 13))
-                    .foregroundColor(.primary)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(p.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
@@ -46,53 +89,54 @@ struct ClipRowView: View {
                     TypeBadge(type: clip.type)
                     Text(clip.timeAgo)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(p.textSecondary)
                     if clip.useCount > 1 {
                         Text("×\(clip.useCount)")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(p.textTertiary)
                     }
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 4)
+
+            if clip.isPinned && !isHovered {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(p.accent)
+                    .rotationEffect(.degrees(45))
+            }
 
             // Action buttons (shown on hover)
             if isHovered {
-                HStack(spacing: 4) {
-                    // Pin button
+                HStack(spacing: 6) {
                     Button(action: { state.togglePin(clip) }) {
                         Image(systemName: clip.isPinned ? "pin.fill" : "pin")
-                            .font(.system(size: 12))
-                            .foregroundColor(clip.isPinned ? .yellow : .secondary)
+                            .font(.system(size: 11))
+                            .foregroundColor(clip.isPinned ? p.accent : p.textSecondary)
+                            .rotationEffect(.degrees(45))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(SkeuoIconButtonStyle(size: 24))
                     .help(clip.isPinned ? "Unpin" : "Pin")
 
-                    // Delete button
                     Button(action: { state.deleteClip(clip) }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(deleteHovered ? .red : .secondary)
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(deleteHovered ? .red : p.textSecondary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(SkeuoIconButtonStyle(size: 24))
                     .onHover { deleteHovered = $0 }
                     .help("Delete")
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                .transition(.opacity.combined(with: .scale(scale: 0.85)))
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(isHovered ? Color(NSColor.selectedContentBackgroundColor).opacity(0.12) : Color.clear)
-        )
+        .skeuoCard(cornerRadius: 10, hovered: isHovered)
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }
-        .onTapGesture {
-            state.copyAndClose(clip)
-        }
+        .onTapGesture { state.copyAndClose(clip) }
         .animation(.easeInOut(duration: 0.15), value: isHovered)
     }
 }
@@ -101,19 +145,22 @@ struct ClipRowView: View {
 
 struct EmptyStateView: View {
     let isSearching: Bool
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: isSearching ? "magnifyingglass" : "doc.on.clipboard")
-                .font(.system(size: 36, weight: .ultraLight))
-                .foregroundColor(.secondary)
+        let p = SkeuoPalette(scheme)
+        VStack(spacing: 14) {
+            Image(systemName: isSearching ? "magnifyingglass" : "tray")
+                .font(.system(size: 38, weight: .light))
+                .foregroundColor(p.textTertiary)
+                .skeuoEngraved(scheme)
             Text(isSearching ? "No results found" : "Nothing copied yet")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.secondary)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(p.textSecondary)
             if !isSearching {
-                Text("Copy something to get started")
+                Text("Copy text or an image to get started")
                     .font(.system(size: 12))
-                    .foregroundColor(Color(NSColor.tertiaryLabelColor))
+                    .foregroundColor(p.textTertiary)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -125,45 +172,34 @@ struct EmptyStateView: View {
 
 struct PopupView: View {
     @ObservedObject var state: AppState
+    @Environment(\.colorScheme) private var scheme
     @State private var localSearch: String = ""
     @State private var showClearConfirm = false
     @FocusState private var searchFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             headerView
-
-            Divider()
-
-            // Search
             searchBar
 
-            Divider()
-                .padding(.horizontal, 12)
-
-            // Clip list
             if state.clips.isEmpty {
                 EmptyStateView(isSearching: !localSearch.isEmpty)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 2) {
+                    LazyVStack(spacing: 7) {
                         ForEach(state.clips) { clip in
                             ClipRowView(clip: clip, state: state)
                         }
                     }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 4)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 10)
                 }
             }
 
-            Divider()
-
-            // Footer
             footerView
         }
-        .background(.regularMaterial)
         .frame(width: 380)
+        .skeuoWindow()
         .onAppear {
             localSearch = ""
             state.search("")
@@ -177,95 +213,117 @@ struct PopupView: View {
     }
 
     private var headerView: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "doc.on.clipboard")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.secondary)
+        let p = SkeuoPalette(scheme)
+        return HStack(spacing: 9) {
+            // Brass emblem
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(colors: [p.accentTop, p.accentBottom], startPoint: .top, endPoint: .bottom)
+                            .shadow(.inner(color: .white.opacity(0.5), radius: 0.5, y: 0.75))
+                    )
+                    .overlay(Circle().strokeBorder(p.accentBottom.opacity(0.7), lineWidth: 0.75))
+                    .shadow(color: .black.opacity(0.3), radius: 1.5, y: 1)
+                    .frame(width: 22, height: 22)
+                Image(systemName: "doc.on.clipboard.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(p.isDark ? Color(hex: 0x3A2A06) : .white)
+            }
+
             Text("ClipVault")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(p.textPrimary)
+                .skeuoEngraved(scheme)
+
             Spacer()
 
-            // Clear history button
             Button(action: { showClearConfirm = true }) {
                 Image(systemName: "trash")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(p.textSecondary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(SkeuoIconButtonStyle())
             .help("Clear history")
             .confirmationDialog("Clear clipboard history?", isPresented: $showClearConfirm, titleVisibility: .visible) {
-                Button("Clear History", role: .destructive) {
-                    state.clearHistory()
-                }
+                Button("Clear History", role: .destructive) { state.clearHistory() }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Pinned items will be kept.")
             }
 
-            // Settings button
             Button(action: {
                 NotificationCenter.default.post(name: .openSettings, object: nil)
             }) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(p.textSecondary)
             }
-            .buttonStyle(.plain)
-            .help("Settings (⌘,)")
+            .buttonStyle(SkeuoIconButtonStyle())
+            .help("Settings")
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
     }
 
     private var searchBar: some View {
-        HStack(spacing: 8) {
+        let p = SkeuoPalette(scheme)
+        return HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(.secondary)
-                .font(.system(size: 13))
-            TextField("Search clips...", text: $localSearch)
+                .foregroundColor(p.textSecondary)
+                .font(.system(size: 13, weight: .medium))
+            TextField("Search clips…", text: $localSearch)
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
+                .foregroundColor(p.textPrimary)
                 .focused($searchFocused)
                 .onKeyPress(.escape) {
-                    if !localSearch.isEmpty {
-                        localSearch = ""
-                        return .handled
-                    }
+                    if !localSearch.isEmpty { localSearch = ""; return .handled }
                     state.popoverRef?.performClose(nil)
                     return .handled
                 }
                 .onKeyPress(.return) {
-                    if let first = state.clips.first {
-                        state.copyAndClose(first)
-                    }
+                    if let first = state.clips.first { state.copyAndClose(first) }
                     return .handled
                 }
 
             if !localSearch.isEmpty {
                 Button(action: { localSearch = "" }) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(p.textTertiary)
                         .font(.system(size: 13))
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 8)
+        .skeuoWell(cornerRadius: 9)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 4)
     }
 
     private var footerView: some View {
-        HStack {
+        let p = SkeuoPalette(scheme)
+        return HStack {
             Text("\(state.clips.count) clip\(state.clips.count == 1 ? "" : "s")")
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(p.textSecondary)
             Spacer()
-            Text("⌘1–9 snippets")
-                .font(.system(size: 11))
-                .foregroundColor(Color(NSColor.tertiaryLabelColor))
+            Text("⌃⇧V toggle · ⌘1–9 snippets")
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundColor(p.textTertiary)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, 9)
+        .background(
+            Rectangle()
+                .fill(p.bgBottom.opacity(0.5))
+                .overlay(
+                    Rectangle().frame(height: 0.75).foregroundColor(p.stroke.opacity(0.6)),
+                    alignment: .top
+                )
+        )
     }
 }
 

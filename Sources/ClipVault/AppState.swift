@@ -23,6 +23,13 @@ class AppState: ObservableObject {
                 self.loadClips()
             }
         }
+        monitor.onNewImage = { [weak self] data in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                _ = self.db.addImageClip(data)
+                self.loadClips()
+            }
+        }
     }
 
     func loadClips() {
@@ -35,8 +42,16 @@ class AppState: ObservableObject {
 
     func copyAndClose(_ clip: Clip) {
         monitor.ignoreNext()
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(clip.content, forType: .string)
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        if clip.type == .image, let data = clip.imageData {
+            pb.setData(data, forType: .png)
+            if let img = NSImage(data: data), let tiff = img.tiffRepresentation {
+                pb.setData(tiff, forType: .tiff)
+            }
+        } else {
+            pb.setString(clip.content, forType: .string)
+        }
         db.updateUsage(id: clip.id)
         loadClips()
         popoverRef?.performClose(nil)

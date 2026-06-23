@@ -1,5 +1,6 @@
 import Foundation
 import SQLite3
+import CryptoKit
 
 // SQLITE_TRANSIENT is a C macro not imported by Swift — define it manually
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
@@ -44,9 +45,12 @@ final class DatabaseManager {
                 created_at REAL NOT NULL,
                 last_used REAL NOT NULL,
                 use_count INTEGER NOT NULL DEFAULT 1,
-                pinned INTEGER NOT NULL DEFAULT 0
+                pinned INTEGER NOT NULL DEFAULT 0,
+                image_data BLOB
             );
         """)
+        // Migration: add image_data column to pre-existing databases
+        execute("ALTER TABLE clips ADD COLUMN image_data BLOB;")
         execute("""
             CREATE TABLE IF NOT EXISTS snippets (
                 slot INTEGER PRIMARY KEY,
@@ -99,6 +103,36 @@ final class DatabaseManager {
         return lastId
     }
 
+    @discardableResult
+    func addImageClip(_ data: Data) -> Int64 {
+        // Use a content-hash as the unique key so identical images dedupe.
+        let digest = SHA256.hash(data: data)
+        let key = "image:" + digest.map { String(format: "%02x", $0) }.joined()
+        let now = Date().timeIntervalSince1970
+        var stmt: OpaquePointer?
+        let sql = """
+            INSERT INTO clips (content, type, created_at, last_used, use_count, pinned, image_data)
+            VALUES (?, 'image', ?, ?, 1, 0, ?)
+            ON CONFLICT(content) DO UPDATE SET
+                last_used = excluded.last_used,
+                use_count = use_count + 1;
+        """
+        var lastId: Int64 = -1
+        if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
+            sqlite3_bind_text(stmt, 1, key, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_double(stmt, 2, now)
+            sqlite3_bind_double(stmt, 3, now)
+            _ = data.withUnsafeBytes { raw in
+                sqlite3_bind_blob(stmt, 4, raw.baseAddress, Int32(data.count), SQLITE_TRANSIENT)
+            }
+            if sqlite3_step(stmt) == SQLITE_DONE {
+                lastId = sqlite3_last_insert_rowid(db)
+            }
+        }
+        sqlite3_finalize(stmt)
+        return lastId
+    }
+
     func getClips(search: String? = nil, limit: Int = 200, offset: Int = 0) -> [Clip] {
         var clips: [Clip] = []
         var stmt: OpaquePointer?
@@ -106,7 +140,7 @@ final class DatabaseManager {
 
         if let search = search, !search.isEmpty {
             sql = """
-                SELECT id, content, type, created_at, last_used, use_count, pinned
+                SELECT id, content, type, created_at, last_used, use_count, pinned, image_data
                 FROM clips
                 WHERE content LIKE ?
                 ORDER BY pinned DESC, last_used DESC
@@ -118,7 +152,7 @@ final class DatabaseManager {
             sqlite3_bind_int(stmt, 3, Int32(offset))
         } else {
             sql = """
-                SELECT id, content, type, created_at, last_used, use_count, pinned
+                SELECT id, content, type, created_at, last_used, use_count, pinned, image_data
                 FROM clips
                 ORDER BY pinned DESC, last_used DESC
                 LIMIT ? OFFSET ?;
@@ -137,9 +171,17 @@ final class DatabaseManager {
             let useCount = Int(sqlite3_column_int(stmt, 5))
             let pinned = sqlite3_column_int(stmt, 6) != 0
             let clipType = ClipType(rawValue: typeStr) ?? .text
+
+            var imageData: Data?
+            if sqlite3_column_type(stmt, 7) == SQLITE_BLOB,
+               let bytes = sqlite3_column_blob(stmt, 7) {
+                let len = Int(sqlite3_column_bytes(stmt, 7))
+                imageData = Data(bytes: bytes, count: len)
+            }
+
             clips.append(Clip(id: id, content: content, type: clipType,
                              createdAt: createdAt, lastUsed: lastUsed,
-                             useCount: useCount, isPinned: pinned))
+                             useCount: useCount, isPinned: pinned, imageData: imageData))
         }
         sqlite3_finalize(stmt)
         return clips

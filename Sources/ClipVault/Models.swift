@@ -9,10 +9,21 @@ struct Clip: Identifiable, Equatable, Sendable {
     let lastUsed: Date
     let useCount: Int
     var isPinned: Bool
+    var imageData: Data?
 
     var preview: String {
-        content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if type == .image {
+            return imageData.map { "Image · \(byteString($0.count))" } ?? "Image"
+        }
+        return content.trimmingCharacters(in: .whitespacesAndNewlines)
             .components(separatedBy: .newlines).joined(separator: " ")
+    }
+
+    private func byteString(_ bytes: Int) -> String {
+        if bytes < 1024 { return "\(bytes) B" }
+        let kb = Double(bytes) / 1024
+        if kb < 1024 { return String(format: "%.0f KB", kb) }
+        return String(format: "%.1f MB", kb / 1024)
     }
 
     var timeAgo: String {
@@ -25,7 +36,7 @@ struct Clip: Identifiable, Equatable, Sendable {
 }
 
 enum ClipType: String, CaseIterable, Sendable {
-    case url, email, code, text
+    case url, email, code, image, text
 
     static func detect(_ s: String) -> ClipType {
         let t = s.trimmingCharacters(in: .whitespaces)
@@ -46,6 +57,7 @@ enum ClipType: String, CaseIterable, Sendable {
         case .url:   return .blue
         case .email: return .green
         case .code:  return .purple
+        case .image: return .orange
         case .text:  return Color(NSColor.tertiaryLabelColor)
         }
     }
@@ -55,7 +67,18 @@ enum ClipType: String, CaseIterable, Sendable {
         case .url:   return "URL"
         case .email: return "EMAIL"
         case .code:  return "CODE"
+        case .image: return "IMAGE"
         case .text:  return "TEXT"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .url:   return "link"
+        case .email: return "envelope"
+        case .code:  return "chevron.left.forwardslash.chevron.right"
+        case .image: return "photo"
+        case .text:  return "text.alignleft"
         }
     }
 }

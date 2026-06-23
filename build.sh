@@ -15,6 +15,7 @@ swiftc \
   -framework SwiftUI \
   -lsqlite3 \
   "$SRCDIR/Models.swift" \
+  "$SRCDIR/Skeuomorphism.swift" \
   "$SRCDIR/DatabaseManager.swift" \
   "$SRCDIR/ClipboardMonitor.swift" \
   "$SRCDIR/AppState.swift" \

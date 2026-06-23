@@ -6,6 +6,7 @@ class ClipboardMonitor: ObservableObject {
     private var timer: Timer?
     private var lastChangeCount: Int = 0
     var onNewClip: ((String, ClipType) -> Void)?
+    var onNewImage: ((Data) -> Void)?
     private var ignoreUntil: Date = .distantPast
 
     func start() {
@@ -29,13 +30,36 @@ class ClipboardMonitor: ObservableObject {
     }
 
     private func poll() {
-        let count = NSPasteboard.general.changeCount
+        let pb = NSPasteboard.general
+        let count = pb.changeCount
         guard count != lastChangeCount else { return }
         lastChangeCount = count
         guard Date() > ignoreUntil else { return }
-        guard let text = NSPasteboard.general.string(forType: .string),
-              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        let type = ClipType.detect(text)
-        onNewClip?(text, type)
+
+        let types = pb.types ?? []
+
+        // Prefer text when present (covers copied URLs that also carry an icon),
+        // but treat a pure image copy (screenshot, image from a browser) as an image.
+        if let text = pb.string(forType: .string),
+           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            onNewClip?(text, ClipType.detect(text))
+            return
+        }
+
+        // Image: normalise whatever the source provided into PNG bytes.
+        if types.contains(.png) || types.contains(.tiff),
+           let img = NSImage(pasteboard: pb),
+           let png = img.pngData {
+            onNewImage?(png)
+        }
+    }
+}
+
+extension NSImage {
+    /// Lossless PNG representation of the image's bitmap data.
+    var pngData: Data? {
+        guard let tiff = tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff) else { return nil }
+        return rep.representation(using: .png, properties: [:])
     }
 }

@@ -3,6 +3,7 @@ import AppKit
 
 struct SettingsView: View {
     @ObservedObject var state: AppState
+    @Environment(\.colorScheme) private var scheme
     @State private var historyLimit: String = "500"
     @State private var launchAtLogin: Bool = false
     @State private var theme: String = "system"
@@ -11,34 +12,43 @@ struct SettingsView: View {
     @State private var saveIndicator: Bool = false
 
     var body: some View {
+        let p = SkeuoPalette(scheme)
         VStack(spacing: 0) {
             // Title bar
-            HStack {
+            HStack(spacing: 9) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(colors: [p.accentTop, p.accentBottom], startPoint: .top, endPoint: .bottom)
+                                .shadow(.inner(color: .white.opacity(0.5), radius: 0.5, y: 0.75))
+                        )
+                        .overlay(Circle().strokeBorder(p.accentBottom.opacity(0.7), lineWidth: 0.75))
+                        .frame(width: 24, height: 24)
+                    Image(systemName: "doc.on.clipboard.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(p.isDark ? Color(hex: 0x3A2A06) : .white)
+                }
                 Text("ClipVault Settings")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(p.textPrimary)
+                    .skeuoEngraved(scheme)
                 Spacer()
                 if saveIndicator {
-                    Label("Saved", systemImage: "checkmark.circle.fill")
-                        .font(.system(size: 12))
+                    Label("Saved", systemImage: "checkmark.seal.fill")
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.green)
                         .transition(.opacity)
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 12)
-
-            Divider()
+            .padding(.top, 18)
+            .padding(.bottom, 14)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    // MARK: General Section
-                    sectionHeader("General")
-
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text("History limit")
-                                .frame(width: 130, alignment: .leading)
+                VStack(alignment: .leading, spacing: 18) {
+                    // MARK: General
+                    settingsGroup("General") {
+                        settingRow("History limit") {
                             Picker("", selection: $historyLimit) {
                                 Text("100").tag("100")
                                 Text("250").tag("250")
@@ -46,126 +56,140 @@ struct SettingsView: View {
                                 Text("1000").tag("1000")
                                 Text("Unlimited").tag("0")
                             }
-                            .pickerStyle(.menu)
-                            .labelsHidden()
-                            .frame(width: 120)
-                            Spacer()
+                            .pickerStyle(.menu).labelsHidden().frame(width: 130)
                         }
-
-                        HStack {
-                            Text("Theme")
-                                .frame(width: 130, alignment: .leading)
+                        Divider().opacity(0.4)
+                        settingRow("Theme") {
                             Picker("", selection: $theme) {
                                 Text("System").tag("system")
                                 Text("Light").tag("light")
                                 Text("Dark").tag("dark")
                             }
-                            .pickerStyle(.menu)
-                            .labelsHidden()
-                            .frame(width: 120)
-                            Spacer()
+                            .pickerStyle(.menu).labelsHidden().frame(width: 130)
                         }
-
-                        HStack {
-                            Text("Launch at login")
-                                .frame(width: 130, alignment: .leading)
-                            Toggle("", isOn: $launchAtLogin)
-                                .labelsHidden()
-                                .toggleStyle(.switch)
-                            Spacer()
+                        Divider().opacity(0.4)
+                        settingRow("Launch at login") {
+                            Toggle("", isOn: $launchAtLogin).labelsHidden().toggleStyle(.switch)
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
 
-                    Divider().padding(.horizontal, 20)
-
-                    // MARK: Snippets Section
-                    sectionHeader("Snippets (⌘1–9)")
-
-                    VStack(spacing: 8) {
+                    // MARK: Snippets
+                    settingsGroup("Snippets · ⌘1–9") {
                         ForEach(1...9, id: \.self) { slot in
+                            if slot > 1 { Divider().opacity(0.4) }
                             HStack(spacing: 10) {
-                                // Slot badge
                                 Text("⌘\(slot)")
-                                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                                    .frame(width: 32, height: 22)
-                                    .background(Color(NSColor.controlColor))
-                                    .cornerRadius(5)
-                                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(NSColor.separatorColor), lineWidth: 0.5))
+                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                    .foregroundColor(p.accent)
+                                    .frame(width: 34, height: 24)
+                                    .skeuoWell(cornerRadius: 6)
 
-                                TextField("Name", text: Binding(
+                                skeuoField("Name", width: 110, text: Binding(
                                     get: { snippetNames[slot] ?? "" },
                                     set: { snippetNames[slot] = $0 }
                                 ))
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 100)
-
-                                TextField("Content", text: Binding(
+                                skeuoField("Content", width: nil, text: Binding(
                                     get: { snippetContents[slot] ?? "" },
                                     set: { snippetContents[slot] = $0 }
                                 ))
-                                .textFieldStyle(.roundedBorder)
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
 
-                    Divider().padding(.horizontal, 20)
-
-                    // MARK: About Section
-                    sectionHeader("About")
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
+                    // MARK: About
+                    settingsGroup("About") {
+                        HStack(spacing: 12) {
                             Image(systemName: "doc.on.clipboard.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.accentColor)
+                                .font(.system(size: 26))
+                                .foregroundColor(p.accent)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("ClipVault")
-                                    .font(.system(size: 14, weight: .semibold))
-                                Text("Version 1.0.0")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(p.textPrimary)
+                                Text("Version 1.0 · Native Swift")
                                     .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(p.textSecondary)
                             }
+                            Spacer()
                         }
-                        Text("Native macOS clipboard manager built with Swift.")
+                        Text("A native macOS clipboard manager. No Electron, no dependencies — text and images, captured automatically.")
                             .font(.system(size: 12))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(p.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 18)
             }
 
-            Divider()
-
-            // Bottom buttons
+            // Bottom bar
             HStack {
-                Button("Clear All History") {
-                    state.clearHistory()
-                    flashSaved()
+                Button(action: { state.clearHistory(); flashSaved() }) {
+                    Label("Clear All History", systemImage: "trash")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.red)
                 }
-                .foregroundColor(.red)
                 .buttonStyle(.plain)
-
                 Spacer()
-
-                Button("Save") {
-                    saveSettings()
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.return, modifiers: .command)
+                Button("Save") { saveSettings() }
+                    .buttonStyle(SkeuoProminentButtonStyle())
+                    .keyboardShortcut(.return, modifiers: .command)
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            .padding(.vertical, 14)
+            .background(
+                Rectangle()
+                    .fill(p.bgBottom.opacity(0.5))
+                    .overlay(Rectangle().frame(height: 0.75).foregroundColor(p.stroke.opacity(0.6)), alignment: .top)
+            )
         }
-        .frame(width: 480, height: 600)
-        .onAppear {
-            loadSettings()
-        }
+        .frame(width: 500, height: 620)
+        .skeuoWindow()
+        .onAppear { loadSettings() }
         .preferredColorScheme(colorScheme)
+    }
+
+    // MARK: - Reusable building blocks
+
+    private func settingsGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        let p = SkeuoPalette(scheme)
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(title.uppercased())
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(p.textTertiary)
+                .skeuoEngraved(scheme)
+                .padding(.leading, 4)
+            VStack(alignment: .leading, spacing: 10) {
+                content()
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .skeuoCard(cornerRadius: 12)
+        }
+    }
+
+    private func settingRow<Control: View>(_ label: String, @ViewBuilder control: () -> Control) -> some View {
+        let p = SkeuoPalette(scheme)
+        return HStack {
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundColor(p.textPrimary)
+            Spacer()
+            control()
+        }
+    }
+
+    private func skeuoField(_ placeholder: String, width: CGFloat?, text: Binding<String>) -> some View {
+        let p = SkeuoPalette(scheme)
+        return TextField(placeholder, text: text)
+            .textFieldStyle(.plain)
+            .font(.system(size: 12))
+            .foregroundColor(p.textPrimary)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .frame(width: width)
+            .frame(maxWidth: width == nil ? .infinity : nil)
+            .skeuoWell(cornerRadius: 6)
     }
 
     private var colorScheme: ColorScheme? {
@@ -176,15 +200,7 @@ struct SettingsView: View {
         }
     }
 
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundColor(.secondary)
-            .textCase(.uppercase)
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 8)
-    }
+    // MARK: - Persistence
 
     private func loadSettings() {
         historyLimit = state.db.getSetting("historyLimit") ?? "500"

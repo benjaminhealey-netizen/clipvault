@@ -93,7 +93,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             button.action = #selector(statusButtonClicked)
             button.target = self
-            button.toolTip = "ClipVault (⌘⇧V)"
+            button.toolTip = "ClipVault (⌃⇧V)"
         }
     }
 
@@ -140,9 +140,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let sig = OSType(0x4356_4C54) // 'CVLT'
 
-        // Cmd+Shift+V → toggle popup (id = 1)
+        // Ctrl+Shift+V → toggle popup (id = 1) — leaves Cmd+Shift+V free
+        // for the system "paste and match style" shortcut.
         var hkID = EventHotKeyID(signature: sig, id: 1)
-        RegisterEventHotKey(9, UInt32(cmdKey | shiftKey), hkID, GetApplicationEventTarget(), 0, &globalHotkeyRefs[0])
+        RegisterEventHotKey(9, UInt32(controlKey | shiftKey), hkID, GetApplicationEventTarget(), 0, &globalHotkeyRefs[0])
 
         // Cmd+1–9 → snippets (id = 101–109)
         for (i, keyCode) in digitKeyCodes.enumerated() {
